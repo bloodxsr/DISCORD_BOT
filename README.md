@@ -88,7 +88,6 @@ SQLite3 is part of the Python standard library.
 # Project Structure:
 ### /bot2.py            # Main bot launcher
 ### /keepAlive.py       # Optional: Keep-alive script for hosting platforms
-### /token.txt          # Discord bot token file (DO NOT SHARE)
 ### /cogs/
      ai.py           # AI-powered commands (Google Gemini integration)
      moderation.py   # Manual moderation tools and commands
@@ -97,6 +96,9 @@ SQLite3 is part of the Python standard library.
      words.py        # List of blacklisted words
      blacklist.py
 ### /requirements.txt   # Python package requirements
+
+
+### ENVIRONMENTAL VARIABLE USE IS INTRODUCED THIS TIME.
 
 
 
