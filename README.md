@@ -1,22 +1,40 @@
 # Discord AI Moderation Bot
-## A multipurpose Discord bot featuring automated moderation, AI-powered responses, and advanced blacklist management. Built with discord.py, Google Gemini AI, and SQLite, this bot helps manage communities efficiently by automating moderation and enhancing conversations with advanced AI capabilities.
 
-# Features
-1. Automated moderation: Detect and delete messages with blacklisted words, escalating punishments.
+A multipurpose Discord bot featuring automated moderation, AI-powered responses, and advanced blacklist management. Built with `discord.py`, Google Gemini AI, and SQLite, this bot helps manage communities efficiently by automating moderation and enhancing conversations with advanced AI capabilities.
 
-2. Blacklist management: Easily add, remove, and view banned words from a shared file.
+---
 
-3. AI responses: Ask questions and get AI-powered replies via the Google Gemini API.
+## Features
 
-4. Persistent warnings: Tracks user offenses with SQLite and handles escalating actions (warning, kick, etc.).
+1. **Automated Moderation:**  
+   Detects and deletes messages with blacklisted words and escalates punishments automatically through warnings, final warnings, and kicking after repeated offenses.
 
-5. Admin tools: Slash commands and context commands for easy server management.
+2. **Blacklist Management:**  
+   Easily add, remove, view, and reload blacklisted words from a shared `words.py` file. Supports paginated viewing and button navigation for convenient management.
 
-6. Uptime support: Optional keep-alive server for use with services like Replit.
+3. **AI Responses:**  
+   Ask questions and get AI-powered replies via the Google Gemini API with commands like `/ask` and `/joke`. Features rate limiting and message length restrictions for robust interaction.
 
+4. **Persistent Warnings:**  
+   Tracks user offenses persistently using SQLite (`warnings.db`) and handles escalating actions (warnings, final warnings, kicks).
 
-# Requirements
-### Add these lines to your requirements.txt:
+5. **Manual Moderation Tools:**  
+   Slash and context commands for kicking, banning, muting, unmuting, and managing roles with permission checks and user confirmation prompts.
+
+6. **Welcome Messaging:**  
+   Sends custom welcome messages on new user join with interactive embedded buttons linking to rules, chat, help, about, and perks.
+
+7. **Admin Tools:**  
+   Commands for server management with caching, permission controls, and easy command access via slash and context menus.
+
+8. **Uptime Support:**  
+   Optional keep-alive server support for hosted environments like Replit.
+
+---
+
+## Requirements
+
+### Add the following to your `requirements.txt`:
     aiohappyeyeballs==2.6.1
     aiohttp==3.12.15
     aiosignal==1.4.0
@@ -80,50 +98,55 @@
     Werkzeug==3.1.3
     yarl==1.20.1
 
-### kindly review this one before pasting    
-SQLite3 is part of the Python standard library.
 
+SQLite3 is included as part of Python's standard library.
 
-
-# Project Structure:
-### /bot2.py            # Main bot launcher
-### /keepAlive.py       # Optional: Keep-alive script for hosting platforms
-### /cogs/
-     ai.py           # AI-powered commands (Google Gemini integration)
-     moderation.py   # Manual moderation tools and commands
-     automode.py     # Automated moderation (blacklist, warnings, punishments)
-     utils.py        # Blacklist management utilities
-     words.py        # List of blacklisted words
-     blacklist.py
-### /requirements.txt   # Python package requirements
-
-
-### ENVIRONMENTAL VARIABLE USE IS INTRODUCED THIS TIME.
-
-
+---
 
 # Setup Instructions
+
 1. Clone the repository and navigate to the project folder.
-2. Install dependencies.
-(pip install -r requirements.txt)
-3. Add your Discord bot token in a file named token.txt (one line, no extra spaces).
-4. (Optional) Add your Google API key in google.txt for AI features in ai.py.
-5. Customize your blacklist by editing words.py.
-6. Launch the bot
-(python bot2.py)
+2. Install dependencies:  
+   `pip install -r requirements.txt`
+3. Add your Discord bot token in a file named `token.txt` (one line, no extra spaces).
+4. (Optional) Add your Google API key in a file named `google.txt` or set it as an environment variable for AI features.
+5. Customize your blacklist by editing `words.py` or using bot commands.
+6. Launch the bot:  
+   `python bot2.py`
 
-
+---
 
 # Usage
--> Add the bot to your server and ensure it has the correct permissions (Manage Messages, Kick Members, Ban Members, etc.).
 
--> Use /commands in Discord for available admin/mod tools.
+- Add the bot to your Discord server with permissions:  
+  Manage Messages, Kick Members, Ban Members, Manage Roles, etc.
+  
+- Use `/commands` in Discord to view available admin and moderation commands.
+  
+- Automated moderation activates immediately, deleting blacklisted words and warning offenders.
 
--> AI features and moderation will be active immediately.
+- Use `/ask` for AI-powered chat responses and `/joke` for fun.
 
--> The bot will automatically moderate according to your words.py blacklist.
+- Manage the blacklist dynamically with commands like `/addbadword`, `/removebadword`.
 
-# Credits
--> Built with discord.py, Google Gemini AI, and open source tools.
+- Monitor user offenses with `/warnings`.
 
--> By your amazing lufy..
+---
+
+## Project Structure
+
+### /bot2.py # Main bot launcher
+### /keepAlive.py # Optional keep-alive server script
+### /cogs/
+    ai.py # AI-powered commands (Google Gemini API)
+    moderation.py # Manual moderation commands (kick, ban, etc.)
+    automod.py # Automated moderation (blacklist, warnings)
+    utils.py # Blacklist manager utility
+    blacklist.py # Blacklist commands and list viewer
+    words.py # Blacklist words list (editable)
+### /requirements.txt # Python dependencies
+
+
+please keep in mind that the welcome and the chat thing are case sensitive update it according to your own use. thank you.
+
+best regards lufy.
