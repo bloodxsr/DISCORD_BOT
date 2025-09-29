@@ -119,31 +119,6 @@ class ModerationCog(commands.Cog):
 
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-    @commands.hybrid_command(name="ping", description="Replies with pong!")
-    async def ping(self, ctx: commands.Context):
-        await ctx.reply("pong!")
-
-#-------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    @commands.hybrid_command(name='slap', description='Slaps a user')
-    async def slap(self, ctx: commands.Context, member: discord.Member):
-        await ctx.reply(f'{ctx.author.mention} slapped {member.mention} <:skulllmaopoint:1359093554873634816>')
-
-#-------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    @commands.hybrid_command(name='avatar', description='Gets the profile picture of a member')
-    async def avatar(self, ctx: commands.Context, member: Optional[discord.Member] = None):
-        target = member or ctx.author
-        
-        embed = discord.Embed(
-            title=f"🖼 Avatar of {target.display_name}",
-            color=0x5865F2  # Use hex color for better performance
-        )
-        embed.set_image(url=target.display_avatar.url)
-        await ctx.send(embed=embed)
-
-#-------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
     @commands.hybrid_command(name="kick", description="Kick a member from the server.")
     @commands.has_permissions(kick_members=True)
     async def kick(self, ctx: commands.Context, member: discord.Member, *, reason: Optional[str] = None):
@@ -276,6 +251,15 @@ class ModerationCog(commands.Cog):
         except discord.HTTPException:
             await self._safe_response(ctx, "⚠️ Failed to unmute the member.")
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if message.author == self.bot.user:
+            return
+        if self.bot.user in message.mentions:
+            await message.channel.send(f"Hello {message.author.mention}! How can I help you?")
+        await self.bot.process_commands(message)
+
+
 
 async def setup(bot):
     await bot.add_cog(ModerationCog(bot))

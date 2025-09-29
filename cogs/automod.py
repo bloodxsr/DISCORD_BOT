@@ -333,7 +333,6 @@ class AutoMod(commands.Cog):
         )
         await ctx.send(embed=embed, delete_after=15)
 
-
 async def setup(bot):
     await bot.add_cog(AutoMod(bot))
 
