@@ -133,20 +133,20 @@ SQLite3 is included as part of Python's standard library.
 
 ---
 
-## Project Structure
+# Project Structure
 
-#### /bot2.py # Main bot launcher
-#### /keepAlive.py # Optional keep-alive server script
-#### /cogs/
+##### /bot2.py # Main bot launcher
+##### /keepAlive.py # Optional keep-alive server script
+##### /cogs/
     ai.py # AI-powered commands (Google Gemini API)
     moderation.py # Manual moderation commands (kick, ban, etc.)
     automod.py # Automated moderation (blacklist, warnings)
     utils.py # Blacklist manager utility
     blacklist.py # Blacklist commands and list viewer
     words.py # Blacklist words list (editable)
-#### /requirements.txt # Python dependencies
+##### /requirements.txt # Python dependencies
 
 
 ### please keep in mind that the welcome and the chat thing are case sensitive update it according to your own use. thank you.
 
-best regards lufy.
+## best regards lufy.
