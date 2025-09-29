@@ -8,8 +8,10 @@ load_dotenv('token.env')
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
+intents.guilds = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix="-", intents=intents)
 
 @bot.event
 async def on_ready():
@@ -18,7 +20,7 @@ async def on_ready():
         await bot.tree.sync()
         
         activity = discord.Activity(type=discord.ActivityType.playing, name="with AI")
-        await bot.change_presence(status=discord.Status.dnd, activity=activity)
+        await bot.change_presence(status=discord.Status.idle, activity=activity)
         
         print(f"Bot extensions loaded: {list(bot.extensions.keys())}")
         print(f"Bot logged in as {bot.user} and commands synced globally")
@@ -46,6 +48,16 @@ async def load_extensions():
         print("loaded blacklist cog")
     except Exception as e:
         print(f"Failed to load cogs.blacklist: {e}")
+    try:
+        await bot.load_extension("cogs.welcome")
+        print("loaded welcome cog")
+    except Exception as e:
+        print(f"Failed to load cogs.welcome: {e}")
+    try:
+        await bot.load_extension("cogs.fun")
+        print("loaded fun cog")
+    except Exception as e:
+        print(f"Failed to load cogs.fun: {e}")
 
 
 if __name__ == "__main__":
