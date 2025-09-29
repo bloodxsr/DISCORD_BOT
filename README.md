@@ -34,7 +34,7 @@ A multipurpose Discord bot featuring automated moderation, AI-powered responses,
 
 ## Requirements
 
-### Add the following to your `requirements.txt`:
+##### Add the following to your `requirements.txt`:
     aiohappyeyeballs==2.6.1
     aiohttp==3.12.15
     aiosignal==1.4.0
@@ -103,7 +103,7 @@ SQLite3 is included as part of Python's standard library.
 
 ---
 
-# Setup Instructions
+## Setup Instructions
 
 1. Clone the repository and navigate to the project folder.
 2. Install dependencies:  
@@ -116,7 +116,7 @@ SQLite3 is included as part of Python's standard library.
 
 ---
 
-# Usage
+## Usage
 
 - Add the bot to your Discord server with permissions:  
   Manage Messages, Kick Members, Ban Members, Manage Roles, etc.
@@ -133,7 +133,7 @@ SQLite3 is included as part of Python's standard library.
 
 ---
 
-# Project Structure
+## Project Structure
 
 ##### /bot2.py # Main bot launcher
 ##### /keepAlive.py # Optional keep-alive server script
@@ -150,3 +150,4 @@ SQLite3 is included as part of Python's standard library.
 ### please keep in mind that the welcome and the chat thing are case sensitive update it according to your own use. thank you.
 
 ## best regards lufy.
+---
