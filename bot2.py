@@ -13,7 +13,8 @@ class Bot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
         intents.message_content = True
-        intents.members = True  # Needed for member join events
+        intents.members = True 
+        intents.guilds = True # Needed for member join events
         super().__init__(command_prefix='-', intents=intents)
 
     async def setup_hook(self) -> None:
@@ -26,6 +27,8 @@ class Bot(commands.Bot):
         await super().close()
 
     async def on_ready(self):
+        activity = discord.Game(name="GOOOOFYYYY")
+        await self.change_presence(status=discord.Status.do_not_disturb, activity=activity)
         print(f'Logged in as {self.user} (ID: {self.user.id})')
         print('------')
 
