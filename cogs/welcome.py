@@ -1,5 +1,5 @@
-from discord.ext import commands
 import discord
+from discord.ext import commands
 
 class WelcomeCog(commands.Cog):
     def __init__(self, bot):
@@ -33,7 +33,7 @@ class WelcomeCog(commands.Cog):
         joined_at = member.joined_at.strftime("%B %d, %Y") if member.joined_at else "Just now"
 
         welcome_message = (
-            f"🎉 Welcome to **{member.guild.name}**, {member.mention}! 🎉\n\n"
+            f" Welcome to **{member.guild.name}**, {member.mention}! \n\n"
             "Please read the rules and introduce yourself.\n"
             "If you need help, ask moderators or active members.\n"
             "Enjoy your stay! 🌟\n"
@@ -67,7 +67,7 @@ class WelcomeButtonsView(discord.ui.View):
         chat_channel = channels.get("chat")
         if chat_channel:
             chat_url = f"https://discord.com/channels/{guild.id}/{chat_channel.id}"
-            self.add_item(discord.ui.Button(label="💚 Chat Here", style=discord.ButtonStyle.link, url=chat_url))
+            self.add_item(discord.ui.Button(label="Chat Here", style=discord.ButtonStyle.link, url=chat_url))
 
     @discord.ui.button(label="Show Help Commands", style=discord.ButtonStyle.primary, custom_id="welcome_help_btn")
     async def help_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -76,11 +76,11 @@ class WelcomeButtonsView(discord.ui.View):
             "`!joke` - Makes the bot tell a joke\n"
             "`!ask` - Ask the bot a question\n"
             "`!ping` - Check the bot’s response time\n"
-            "More commands coming soon! stay tuned! 😊"
+            "More commands coming soon! stay tuned!"
         )
         await interaction.response.send_message(help_text, ephemeral=True)
 
-    @discord.ui.button(label="❓ About", style=discord.ButtonStyle.success, custom_id="welcome_about_btn")
+    @discord.ui.button(label="About", style=discord.ButtonStyle.success, custom_id="welcome_about_btn")
     async def about_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         about_text = (
             "**About this server:**\n"
@@ -88,7 +88,7 @@ class WelcomeButtonsView(discord.ui.View):
         )
         await interaction.response.send_message(about_text, ephemeral=True)
 
-    @discord.ui.button(label="🎁 Perks", style=discord.ButtonStyle.danger, custom_id="welcome_perks_btn")
+    @discord.ui.button(label="Perks", style=discord.ButtonStyle.danger, custom_id="welcome_perks_btn")
     async def perks_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         perks_text = (
             "**Server Perks:**\n"

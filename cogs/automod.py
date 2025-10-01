@@ -277,7 +277,7 @@ class AutoMod(commands.Cog):
         )
         if warning_count >= self.MAX_WARNINGS - 1:
             embed.add_field(
-                name="⚡ Final Warning",
+                name="Final Warning",
                 value="Next violation will result in a kick!",
                 inline=False
             )
