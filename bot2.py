@@ -1,67 +1,52 @@
 import os
 import discord
 from discord.ext import commands
-from keep_Alive import keep_alive
 import asyncio
 from dotenv import load_dotenv
+import aiohttp
 load_dotenv('token.env')
 
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
-intents.guilds = True
+class Bot(commands.Bot):
+    # Suppress error on the User attribute being None since it fills up later
+    user: discord.ClientUser
 
-bot = commands.Bot(command_prefix="-", intents=intents)
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.message_content = True
+        intents.members = True  # Needed for member join events
+        super().__init__(command_prefix='-', intents=intents)
 
-@bot.event
-async def on_ready():
-    try:
-        # Sync slash commands globally (no guild specified)
-        await bot.tree.sync()
-        
-        activity = discord.Activity(type=discord.ActivityType.playing, name="with AI")
-        await bot.change_presence(status=discord.Status.idle, activity=activity)
-        
-        print(f"Bot extensions loaded: {list(bot.extensions.keys())}")
-        print(f"Bot logged in as {bot.user} and commands synced globally")
-    except Exception as e:
-        print(f"Failed to sync commands globally: {e}")
+    async def setup_hook(self) -> None:
+        # Create a session for making HTTP requests.
+        self.session = aiohttp.ClientSession()
+
+    async def close(self) -> None:
+        # Close the session when the bot is shutting down.
+        await self.session.close()
+        await super().close()
+
+    async def on_ready(self):
+        print(f'Logged in as {self.user} (ID: {self.user.id})')
+        print('------')
+
+bot = Bot()
+@bot.command()
+async def debug(ctx):
+    help_commands = [cmd for cmd in bot.commands if cmd.name == 'help']
+    await ctx.send(f"Help commands found: {len(help_commands)}")
+
+
+loading = ['cogs.ai', 'cogs.moderation', 'cogs.automod', 'cogs.blacklist', 'cogs.welcome', 'cogs.fun']
 
 async def load_extensions():
-    try:
-        await bot.load_extension("cogs.ai")
-        print("loaded ai cog")
-    except Exception as e:
-        print(f"Failed to load cogs.ai: {e}")
-    try:
-        await bot.load_extension("cogs.moderation")  # corrected module name here
-        print("loaded moderation cog")
-    except Exception as e:
-        print(f"Failed to load cogs.moderation: {e}")
-    try:
-        await bot.load_extension("cogs.automod")
-        print("loaded automod cog")
-    except Exception as e:
-        print(f"Failed to load cogs.automod: {e}")
-    try:
-        await bot.load_extension("cogs.blacklist")
-        print("loaded blacklist cog")
-    except Exception as e:
-        print(f"Failed to load cogs.blacklist: {e}")
-    try:
-        await bot.load_extension("cogs.welcome")
-        print("loaded welcome cog")
-    except Exception as e:
-        print(f"Failed to load cogs.welcome: {e}")
-    try:
-        await bot.load_extension("cogs.fun")
-        print("loaded fun cog")
-    except Exception as e:
-        print(f"Failed to load cogs.fun: {e}")
-
+    for i in loading:
+        try:
+            await bot.load_extension(i)
+            print(f'Loaded extension: {i}')
+        except Exception as e:
+            print(f'Failed to load extension {i}: {e}')
 
 if __name__ == "__main__":
-    keep_alive()
     asyncio.run(load_extensions())
 
 token = str(os.getenv("token"))
