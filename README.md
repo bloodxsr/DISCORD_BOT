@@ -154,4 +154,4 @@ SQLite3 is included as part of Python's standard library.
 
 # UPDATES-
 1. containers are added with the help of new UI style but it is advised to update them accordingly
-2. soon.
+2. to add leveling and achievement system.
