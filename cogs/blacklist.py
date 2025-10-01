@@ -1,7 +1,6 @@
 # blacklist.py
 # discord.py 2.x
-# Persists blacklist to words.py (variable: blat)
-# Provides add/remove/list commands and a paginated viewer.
+# Blacklist manager with UI + event broadcasting
 
 import os
 import ast
@@ -10,22 +9,20 @@ from typing import List, Set
 
 import discord
 from discord.ext import commands
+from discord import ui
 
-WORDS_FILE = "cogs/words.py"  # adjust path if needed
+WORDS_FILE = "cogs/words.py"
 DEFAULT_TIMEOUT: float = 300.0
-MONO_MAX = 1990  # safety margin under 2000 chars
+MONO_MAX = 1990
 
 
 # ---------- storage helpers ----------
 def load_blacklist_from_file(path: str = WORDS_FILE) -> List[str]:
-    """Read 'blat' from words.py quickly (AST first, import fallback)."""
     if not os.path.exists(path):
         return []
     try:
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
-
-        # Fast path: AST parse
         try:
             tree = ast.parse(content)
             for node in ast.walk(tree):
@@ -40,12 +37,10 @@ def load_blacklist_from_file(path: str = WORDS_FILE) -> List[str]:
                         ]
         except (SyntaxError, ValueError):
             pass
-
-        # Fallback: dynamic import
         spec = importlib.util.spec_from_file_location("words_module", path)
         if spec and spec.loader:
             module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)  # type: ignore[attr-defined]
+            spec.loader.exec_module(module)  # type: ignore
             return list(getattr(module, "blat", []))
     except Exception as e:
         print(f"[Blacklist] Error loading file: {e}")
@@ -53,7 +48,6 @@ def load_blacklist_from_file(path: str = WORDS_FILE) -> List[str]:
 
 
 def save_blacklist_to_file(words: Set[str], path: str = WORDS_FILE) -> None:
-    """Write back to words.py as blat = [...]."""
     try:
         payload = sorted(list(words))
         content = f"blat = {payload!r}\n"
@@ -63,14 +57,12 @@ def save_blacklist_to_file(words: Set[str], path: str = WORDS_FILE) -> None:
         print(f"[Blacklist] Error saving file: {e}")
 
 
-# ---------- formatting helpers ----------
 def chunk_words(words: List[str], per_page: int = 100) -> List[str]:
-    """Return comma-joined page strings that stay within message limits."""
     pages: List[str] = []
     page: List[str] = []
     length = 0
     for w in words:
-        add_len = (2 if page else 0) + len(w)  # ", " + word (except first)
+        add_len = (2 if page else 0) + len(w)
         if page and (length + add_len) > MONO_MAX:
             pages.append(", ".join(page))
             page, length = [w], len(w)
@@ -85,129 +77,119 @@ def chunk_words(words: List[str], per_page: int = 100) -> List[str]:
     return pages
 
 
-def build_preview_embed(words: List[str]) -> discord.Embed:
-    preview = ", ".join(words[:20]) if words else "No words."
-    if len(words) > 20:
-        preview += f"\n\n({len(words) - 20} more words not shown)"
-    return discord.Embed(
-        title=f"Blacklist ({len(words)} words)",
-        description=preview,  # plain text
-        color=discord.Color.orange(),
-    )
+# ---------- UI ----------
+class SearchModal(ui.Modal, title="Search Blacklist"):
+    query = ui.TextInput(label="Enter word", placeholder="Type a word to search...")
+
+    def __init__(self, parent_view: 'BlacklistLayoutView'):
+        super().__init__()
+        self.parent_view = parent_view
+
+    async def on_submit(self, interaction: discord.Interaction):
+        word = self.query.value.lower().strip()
+        if not word:
+            return await interaction.response.send_message("Please enter a word.", ephemeral=True)
+
+        if word not in self.parent_view.words:
+            return await interaction.response.send_message("Word not found in blacklist.", ephemeral=True)
+
+        idx = self.parent_view.words.index(word)
+        self.parent_view.page_index = idx // 100
+        self.parent_view.show_page()
+        await interaction.response.edit_message(view=self.parent_view)
 
 
-# ---------- Views ----------
-class PreviewView(discord.ui.View):
-    """Initial view with a button to show the full list."""
+class BlacklistNavButtons(ui.ActionRow):
+    def __init__(self, parent_view: 'BlacklistLayoutView') -> None:
+        super().__init__()
+        self.parent_view = parent_view
 
-    def __init__(self, words: List[str], *, timeout: float = DEFAULT_TIMEOUT):
-        super().__init__(timeout=timeout)
-        self.words = words
+    @ui.button(label="Previous", style=discord.ButtonStyle.secondary)
+    async def prev(self, interaction: discord.Interaction, button: ui.Button):
+        self.parent_view.prev_page()
+        await interaction.response.edit_message(view=self.parent_view)
 
-        self.btn_show = discord.ui.Button(
-            label="Show Full List", style=discord.ButtonStyle.primary
-        )
-        self.btn_close = discord.ui.Button(
-            label="❌ Close", style=discord.ButtonStyle.danger
-        )
+    @ui.button(label="Next", style=discord.ButtonStyle.secondary)
+    async def next(self, interaction: discord.Interaction, button: ui.Button):
+        self.parent_view.next_page()
+        await interaction.response.edit_message(view=self.parent_view)
 
-        self.btn_show.callback = self._on_show_full
-        self.btn_close.callback = self._on_close
+    @ui.button(label="Search", style=discord.ButtonStyle.primary)
+    async def search(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.send_modal(SearchModal(self.parent_view))
 
-        self.add_item(self.btn_show)
-        self.add_item(self.btn_close)
+    @ui.button(label="Preview", style=discord.ButtonStyle.secondary)
+    async def preview(self, interaction: discord.Interaction, button: ui.Button):
+        self.parent_view.show_preview()
+        await interaction.response.edit_message(view=self.parent_view)
 
-    async def _on_show_full(self, interaction: discord.Interaction):
-        paginator = PaginatorView(self.words, page_index=0, timeout=DEFAULT_TIMEOUT)
-        await interaction.response.edit_message(
-            embed=paginator.current_embed(), view=paginator
-        )
-
-    async def _on_close(self, interaction: discord.Interaction):
-        await interaction.response.edit_message(view=None)
-        self.stop()
-
-    async def on_timeout(self):
-        return
+    @ui.button(label="Close", style=discord.ButtonStyle.danger)
+    async def close(self, interaction: discord.Interaction, button: ui.Button):
+        # Stop the parent view so buttons are disabled
+        self.parent_view.stop()
+        # Edit the message to remove the view
+        await interaction.message.delete() #type: ignore
+        await interaction.response.send_message("Blacklist view closed.", ephemeral=True)
 
 
-class PaginatorView(discord.ui.View):
-    """Full list paginator with Prev/Next and toggle back to preview."""
 
-    def __init__(self, words: List[str], *, page_index: int = 0, timeout: float = DEFAULT_TIMEOUT):
-        super().__init__(timeout=timeout)
+class BlacklistLayoutView(ui.LayoutView):
+    def __init__(self, words: List[str]) -> None:
+        super().__init__()
         self.words = words
         self.pages = chunk_words(words, per_page=100)
-        self.page_index = max(0, min(page_index, max(0, len(self.pages) - 1)))
+        self.preview_mode = True
+        self.page_index = 0
 
-        self.prev_btn = discord.ui.Button(label="◀️ Previous", style=discord.ButtonStyle.secondary)
-        self.toggle_btn = discord.ui.Button(label="Hide Full List", style=discord.ButtonStyle.danger)
-        self.next_btn = discord.ui.Button(label="▶️ Next", style=discord.ButtonStyle.secondary)
-        self.close_btn = discord.ui.Button(label="❌ Close", style=discord.ButtonStyle.danger)
+        self.display = ui.TextDisplay(self._get_preview_content())
 
-        self.prev_btn.callback = self._on_prev
-        self.toggle_btn.callback = self._on_toggle
-        self.next_btn.callback = self._on_next
-        self.close_btn.callback = self._on_close
-
-        self.add_item(self.prev_btn)
-        self.add_item(self.toggle_btn)
-        self.add_item(self.next_btn)
-        self.add_item(self.close_btn)
-
-        self._sync_buttons()
-
-    def _sync_buttons(self):
-        last_idx = max(0, len(self.pages) - 1)
-        self.prev_btn.disabled = (self.page_index <= 0)
-        self.next_btn.disabled = (self.page_index >= last_idx or last_idx == 0)
-
-    def current_embed(self) -> discord.Embed:
-        total = len(self.words)
-        total_pages = max(1, len(self.pages))
-        text = self.pages[self.page_index] if self.pages else "No words."
-        # No code block fences; show raw content to avoid rendering quirks
-        e = discord.Embed(
-            title=f"Full Blacklist — Page {self.page_index + 1}/{total_pages}",
-            description=text,  # was f"``````"
-            color=discord.Color.red(),
+        container = ui.Container(
+            self.display,
+            ui.Separator(),
+            BlacklistNavButtons(self),
+            accent_color=discord.Color.red()
         )
-        start = self.page_index * 100 + 1 if total > 0 else 0
-        end = min((self.page_index + 1) * 100, total)
-        e.set_footer(text=f"Words {start}-{end} of {total}")
-        return e
+        self.add_item(container)
 
+    def _get_preview_content(self) -> str:
+        preview = ", ".join(self.words[:20]) if self.words else "No words."
+        if len(self.words) > 20:
+            preview += f"\n\n({len(self.words) - 20} more words not shown)"
+        return f"📝 **Blacklist Preview** ({len(self.words)} words)\n\n{preview}"
 
-    async def _on_prev(self, interaction: discord.Interaction):
-        if self.page_index > 0:
+    def _get_page_content(self) -> str:
+        if not self.pages:
+            return "No words."
+        total_pages = max(1, len(self.pages))
+        text = self.pages[self.page_index]
+        return (
+            f"📕 **Blacklist Page {self.page_index + 1}/{total_pages}**\n\n"
+            f"{text}\n\n"
+            f"Showing words {self.page_index*100+1}-{min((self.page_index+1)*100,len(self.words))} "
+            f"of {len(self.words)}"
+        )
+
+    def show_preview(self):
+        self.preview_mode = True
+        self.display.content = self._get_preview_content()
+
+    def show_page(self):
+        self.preview_mode = False
+        self.display.content = self._get_page_content()
+
+    def prev_page(self):
+        if not self.preview_mode and self.page_index > 0:
             self.page_index -= 1
-        self._sync_buttons()
-        await interaction.response.edit_message(embed=self.current_embed(), view=self)
+        self.show_page()
 
-    async def _on_toggle(self, interaction: discord.Interaction):
-        prev = build_preview_embed(self.words)
-        view = PreviewView(self.words, timeout=DEFAULT_TIMEOUT)
-        await interaction.response.edit_message(embed=prev, view=view)
-
-    async def _on_next(self, interaction: discord.Interaction):
-        last = max(0, len(self.pages) - 1)
-        if self.page_index < last:
+    def next_page(self):
+        if not self.preview_mode and self.page_index < len(self.pages) - 1:
             self.page_index += 1
-        self._sync_buttons()
-        await interaction.response.edit_message(embed=self.current_embed(), view=self)
-
-    async def _on_close(self, interaction: discord.Interaction):
-        await interaction.response.edit_message(view=None)
-        self.stop()
-
-    async def on_timeout(self):
-        return
+        self.show_page()
 
 
 # ---------- Cog ----------
 class BlacklistCog(commands.Cog):
-    """Blacklist management and viewer."""
-
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self._blacklist_cache: Set[str] = set(load_blacklist_from_file())
@@ -216,75 +198,44 @@ class BlacklistCog(commands.Cog):
     def blacklist(self) -> Set[str]:
         return self._blacklist_cache
 
-    def _broadcast_update(self):
-        """Notify AutoMod if available, without type errors."""
-        cog = self.bot.get_cog("AutoMod")
-        if not cog:
-            return
-        # Guarded dynamic call to satisfy Pylance
-        method = getattr(cog, "update_blacklist", None)
-        if callable(method):
-            try:
-                method(self._blacklist_cache.copy())
-            except Exception as e:
-                print(f"[Blacklist] Failed to broadcast update: {e}")
-
-
     def _persist_and_broadcast(self):
         save_blacklist_to_file(self._blacklist_cache)
-        self._broadcast_update()
+        # 🔥 Event-based broadcast
+        self.bot.dispatch("blacklist_update", self._blacklist_cache.copy())
 
-    # ---- Add word ----
     @commands.hybrid_command(name="add_bad_word", description="Add a word to the blacklist")
     @commands.has_permissions(administrator=True)
     async def add_bad_word(self, ctx: commands.Context, *, word: str):
         w = word.lower().strip()
         if not w:
-            return await ctx.send("Please provide a valid word or phrase.", ephemeral=True if hasattr(ctx, "interaction") else False)
+            return await ctx.send("Please provide a valid word or phrase.")
         if w in self._blacklist_cache:
-            return await ctx.send(f"`{word}` is already blacklisted.", ephemeral=True if hasattr(ctx, "interaction") else False)
-
+            return await ctx.send(f"`{word}` is already blacklisted.")
         self._blacklist_cache.add(w)
         self._persist_and_broadcast()
-        await ctx.send(f"✅ Added `{word}` to blacklist.", ephemeral=True if hasattr(ctx, "interaction") else False)
+        await ctx.send(f"✅ Added `{word}` to blacklist.")
 
-    # ---- Remove word ----
     @commands.hybrid_command(name="remove_bad_word", description="Remove a word from the blacklist")
     @commands.has_permissions(administrator=True)
     async def remove_bad_word(self, ctx: commands.Context, *, word: str):
         w = word.lower().strip()
         if not w:
-            return await ctx.send("Please provide a valid word or phrase.", ephemeral=True if hasattr(ctx, "interaction") else False)
+            return await ctx.send("Please provide a valid word or phrase.")
         if w not in self._blacklist_cache:
-            return await ctx.send(f"`{word}` not found in blacklist.", ephemeral=True if hasattr(ctx, "interaction") else False)
-
+            return await ctx.send(f"`{word}` not found in blacklist.")
         self._blacklist_cache.discard(w)
         self._persist_and_broadcast()
-        await ctx.send(f"✅ Removed `{word}` from blacklist.", ephemeral=True if hasattr(ctx, "interaction") else False)
+        await ctx.send(f"✅ Removed `{word}` from blacklist.")
 
-    # ---- List words (preview + buttons) ----
-    @commands.hybrid_command(name="list_blacklist", description="Preview and browse the blacklist with buttons")
+    @commands.hybrid_command(name="list_blacklist", description="Preview and browse the blacklist with UI")
     @commands.has_permissions(administrator=True)
     async def list_blacklist(self, ctx: commands.Context):
         words = sorted(list(self._blacklist_cache))
         if not words:
-            return await ctx.send(
-                embed=discord.Embed(
-                    title="Empty Blacklist",
-                    description="No words are currently blacklisted.",
-                    color=discord.Color.green(),
-                ),
-                ephemeral=True if hasattr(ctx, "interaction") else False,
-            )
-
-        embed = build_preview_embed(words)
-        view = PreviewView(words, timeout=DEFAULT_TIMEOUT)
-        await ctx.send(
-            embed=embed,
-            view=view,
-            ephemeral=True if hasattr(ctx, "interaction") else False,
-        )
+            return await ctx.send("✅ Blacklist is empty.")
+        view = BlacklistLayoutView(words)
+        await ctx.send(view=view)
 
 
-async def setup(bot: commands.Bot):
+async def setup(bot):
     await bot.add_cog(BlacklistCog(bot))
