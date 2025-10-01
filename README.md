@@ -30,6 +30,9 @@ A multipurpose Discord bot featuring automated moderation, AI-powered responses,
 8. **Uptime Support:**  
    Optional keep-alive server support for hosted environments like Replit.
 
+9. **syncing**
+   commands are synced globally so pls be waty abt it. if uwanty faster syncing goforg particular guild ayncing
+
 ---
 
 ## Requirements
