@@ -147,6 +147,8 @@ SQLite3 is included as part of Python's standard library.
     utils.py # Blacklist manager utility
     blacklist.py # Blacklist commands and list viewer
     words.py # Blacklist words list (editable)
+    fun.py # for fun things where more issto be added. 
+    welcome.py # just for the welcome thing 
 ##### /requirements.txt # Python dependencies
 
 
